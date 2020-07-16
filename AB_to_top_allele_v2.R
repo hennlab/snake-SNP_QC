@@ -68,7 +68,7 @@ if (opt$verbose==TRUE) {
 A1A <- overlap$Allele1 %in% "A"
 A1B <- overlap$Allele1 %in% "B"
 A2A <- overlap$Allele2 %in% "A"
-A2B <- overlap$Allele2 %in% "A"
+A2B <- overlap$Allele2 %in% "B"
 
 # Sequentially replace "AB" allele notation with corresponding "ACGT" notation from the strand file
 # Since "A" is present in both notations we have to be careful not to overwrite and introduce errors
