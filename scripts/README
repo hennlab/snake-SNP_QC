@@ -1,0 +1,138 @@
+----------------------------------------------------------------------------
+zCall: A Rare Variant Caller for Array-Based Genotyping
+(GenomeStudio Report Version - without the use of an EGT file)
+
+For questions about implementing zCall or reporting problems with the code, please send an email to Jackie Goldstein (jigold@broadinstitute.org). For all other inquiries, please send an email to both Ben Neale (bneale@broadinstitute.org) and Jackie Goldstein (jigold@broadinstitute.org).
+
+*** The Illumina provided Code was provided as-is and with no warranty as to performance and no warranty against it infringing any other party's intellectual property rights.
+
+The paper describing zCall can be found here:
+Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, O'Dushlaine C, Moran JL, Chambert K, Stevens C; Swedish Schizophrenia Consortium; ARRA Autism Sequencing Consortium, Sklar P, Hultman CM, Purcell S, McCarroll SA, Sullivan PF, Daly MJ, Neale BM. zCall: a rare variant caller for array-based genotyping: Genetics and population analysis. Bioinformatics. 2012 Oct 1;28(19):2543-2545. Epub 2012 Jul 27. PubMed PMID: 22843986.
+----------------------------------------------------------------------------
+
+I. Overview
+
+zCall is a set of Python scripts that are implemented on the command line. The input is a GenomeStudio report with three columns per sample (GT[AA,AB,BB,NC], normX, normY) and tab delimited. An example header is Name<tab>Chr<tab>Position<tab>Sample1.GType<tab>Sample1.X<tab>Sample1.Y See examples folder for sample genome studio input. Maximum memory requirement is linear to the number of samples and is roughly equal to the size of one line of the GenomeStudio Report. zCall is meant to be a post-processing step after GenCall has been run. Therefore, we recommend QCing the original GenCall calls for HWE, call rate, and sample level information and only use zCalls in analyses for sites and samples that meet these QC filters. Sites can be removed from the output PED file using PLINK with the --exclude flag. (http://pngu.mgh.harvard.edu/~purcell/plink/) The output is a tped and tfam file that has the alleles A and B. Use the --update-alleles flag in Plink to convert A,B to actual base pairs.
+
+The order in which the scripts should be called are as follows:
+
+1. Calculate the means and standard deviations of the homozygote clusters in the minor axis dimension using findMeanSD.py
+
+2. Calculate the best fit line between the means and standard deviations of X and Y using findBetas.r
+
+3**. Find the thresholds t_x and t_y for each snp using findThresholds.py
+
+4. Make an output TPED and TFAM file from the GenomeStudio report using zCall.py. This step can be parallelized by splitting the report into smaller reports and calling separately. The output will be in the format of A,B alleles. These can be converted using PLINK with the --update-alleles flag.
+
+**To find the best z-score to use, repeat this step with different values of z [ex: 3-15] to obtain different sets of thresholds. To obtain the concordance of GenCall with zCall (recalling all points), use calibrateZ.py for a given threshold file. Whichever set of thresholds gives the best concordance with GenCall should subsequently be used for producing the final TPED file.
+
+For steps 1,2,3 -- it is best if the samples are QC'd to remove any outliers based on intensities or heterozygosity. One can use dropSamplesFromReport.py to do this.
+----------------------------------------------------------------------------
+
+II. Contents
+
+1. findMeanSD.py
+
+This script takes an Illumina Genome Studio report file as the input as specified by the -R flag at the command line and prints to standard output the means and standard deviations of the noise dimension for both homozygote clusters.
+
+Example Usage:
+python findMeanSD.py -R my.report > my.mean.sd.txt
+
+Example Output:
+SNP     meanX   meanY   sdX     sdY     nMinorHom       nCommonHom
+exm-IND10-102817747     0.0392347243215 0.0613322039676 0.010118493975  0.0126462436364 228     6476
+exm-IND13-47565698      0.0111437905671 0.0350326370149 0.0206750497598 0.00733080579545        20      8217
+exm-IND16-87694958      0.0592905368162 0.298133284703  0.0212582370535 0.0721205584317 471     5561
+exm-IND17-3541025       0.0701893082753 0.0874438892934 0.0257727288208 0.0168673527018 704     4887
+
+
+2. findBetas.r
+
+This script takes as input the means and standard deviations calculated from findMeanSD.py and the output file path name to be written to. The third argument is either 0 or 1. 1 means to use weighted linear regression to account for small sample sizes where the weights are 1 / sqrt((1/nAA) + (1/nBB)). 0 is to use regular linear regression. The output is a text file with the beta coefficients and p-values for the following:
+mean_Y ~ mean_X
+mean_X ~ mean_Y
+sd_Y ~ sd_X
+sd_X ~ sd_Y
+
+Example Usage:
+Rscript findBetas.r <my.mean.sd.txt>  <my.betas.txt> 1
+
+Example Output:
+Model   Beta0   Beta1   pBeta0  pBeta1
+meanY~meanX     0.0361008517335467      0.408826938991564       0       8.0063656846002e-209
+meanX~meanY     0.0196130123363404      0.193920976874597       2.75794982838913e-297   8.00636568460522e-209
+sdY~sdX 0.00849047606288656     0.220014889617904       0       1.77631451722414e-71
+sdX~sdY 0.00570888678726261     0.124429781269892       0       1.77631451722667e-71
+
+
+3. findThresholds.py
+
+This script takes as input the beta coefficients from findBetas.r, an optional z-score threshold (default is 7), an optional minimum mean signal intensity for site to have zCalls assigned (default is 0.2), and an Illumina GenomeStudio report file. The output is a file with T_x and T_y specified for each SNP.
+
+Example Usage:
+python findThresholds.py -B my.betas.txt -R my.report -Z 7 -I 0.2 > my.output.threshold.txt
+
+Example Output:
+SNP     Tx      Ty
+exm-IND1-200449980      0.0433116735063 0.106886681131
+exm-IND1-201453487      0.043928957099  0.107555042777
+exm-IND1-85310248       0.0667307870142 0.0517804626689
+exm-IND10-102817747     0.110064182147  0.127157931765
+
+
+4. zCall.py
+
+This script takes as input the thresholds output file from findThresholds.py, a GenomeStudio report, and the output root for the tped/tfam files. The output is a PLINK PED file where the FID and IID are the prefix before .GType in the header row of the report.
+
+Example Usage:
+python zCall.py -R my.report -T my.thresholds.txt -O my.output.root.for.tped_tfam
+
+
+5. calibrateZ.py
+
+Python script to calibrate the z-score to use. Input is a threshold file from findThresholds.py, and a GenomeStudio report. Output is the global concordance rate, specificity, sensitivityAB, sensitivity BB, PPV_AB, PPV_BB, and NPV. Only autosomal, common sites (MAF > 5%) are included with a genotyping call rate > 99% and p_hwe > 1e-5. Each homozygote cluster is also required to have at least 10 points in it.
+
+Example Usage:
+python calibrateZ.py -R my.report -T my.thresholds > my.concordance.stats
+
+Example Output:
+Thresholds used: ciac/threshold.15.txt
+
+Concordance Stats (%)
+Global Concordance: 95.9315466845
+Specificity: 98.9672335959
+SensitivityAB: 92.2019795632
+SensitivityBB: 97.5480132074
+Negative Predictive Value: 96.9860002619
+Positive Predictive Value AB: 97.2882541988
+Positive Predictive Value BB: 87.8901116301
+
+
+6. calcMeanSD.py
+
+A utility function for findMeanSD.py
+
+
+7. convertReportToTPED.py
+
+A utility script for taking a raw Illumina GenomeStudio report and turning it into a TPED. Inputs are a GenomeStudio report and the output root for the TPED and TFAM files.
+
+Example Usage:
+python convertReportToTPED.py -O my.plink.file.output.root -R my.report
+
+
+8. dropSamplesFromReport.py
+
+A utility script to drop samples from an Illumina GenomeStudio report. Inputs are the report and a text file with samples to drop (one sample per line). Sample name is the same as the root before the ".GType"
+
+Example Usage:
+python dropSamplesFromReport.py my.report my.samples.to.drop > my.new.report
+
+*** A faster version of this script is located on the github website in the additionalScripts folder ***
+
+9. qcReport.py
+
+A utility script to drop samples from an Illumina GenomeStudio report that do not meet a call rate threshold.
+
+Example Usage:
+python qcReport.py -R my.report -C 0.99 > my.new.report
