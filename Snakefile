@@ -252,9 +252,9 @@ rule align_strand:
   input:
     "QC/{dataset}.rareCommonMerged.dbsnp.noDup.bim"
   output:
-    "QC/Indel_{dataset}",
-    "QC/NonMatching_{dataset}",
-    "QC/FlipStrand_{dataset}"
+    "QC/Indel_{dataset}.txt",
+    "QC/NonMatching_{dataset}.txt",
+    "QC/FlipStrand_{dataset}.txt"
   shell:
     """
     python scripts/match_against_1000g.py --bim {input} --legend {LEGEND} --out {DATASET}
@@ -262,28 +262,47 @@ rule align_strand:
 
 rule flip:
   input:
-    "QC/FlipStrand_{dataset}"
+    flip = "QC/FlipStrand_{dataset}.txt",
+    multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup", ".bim", ".bed", ".fam")
   output:
-
+    snps = "QC/SNPs_to_flip.txt",
+    multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip", ".bim", ".bed", ".fam")
+  params:
+    input = "QC/{dataset}.rareCommonMerged.dbsnp.noDup"
+    out = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip"
   shell:
     """
-    cut -f2 {input.flip} > snps_to_flip.txt
+    cut -f2 {input.flip} > {output.snps}
+    plink --bfile {params.input} --flip {output.snps} --make-bed --out {params.output}
+    mv {params.input}.bed {params.out}.bed
+    mv {params.input}.fam {params.out}.fam
     """
-# cut -f2 FlipStrand_cdb_80.txt > snps_to_flip.txt
-# plink --bfile cdb_80.rareCommonMerged.dbsnp.noDup --flip snps_to_flip.txt  --make-bed --out cdb_80.rareCommonMerged.dbsnp.noDup.flip
-
 
 rule remove_non_matching:
   input:
+    bfile = multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip", ".bim", ".bed", ".fam"),
+    match = "QC/NonMatching_{dataset}.txt"
   output:
+    multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match", ".bim", ".bed", ".fam")
+  params:
+    input = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip",
+    out = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match"
   shell:
-
-# plink --bfile cdb_80.rareCommonMerged.dbsnp.noDup.flip --exclude NonMatching_cdb_80.txt --make-bed --out cdb_80.rareCommonMerged.dbsnp.noDup.flip.match
+    """
+    plink --bfile {params.in} --exclude {input.match} --make-bed --out {params.out}
+    """
 
 rule remove_cg_at:
   input:
+    multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match", ".bim", ".bed", ".fam")
   output:
+    multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT", ".bim", ".bed", ".fam"),
+    txt = "QC/cg_at_loci.txt"
+  params:
+    input = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match",
+    out = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT"
   shell:
-
-# python scripts/find_cg_at.py cdb_80.rareCommonMerged.dbsnp.noDup.flip.match.bim > cg_at_loci.txt
-# plink --bfile cdb_80.rareCommonMerged.dbsnp.noDup.flip.match --exclude cg_at_loci.txt --make-bed --out cdb_80.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT
+    """
+    python scripts/find_cg_at.py {params.input}.bim > {output.txt}
+    plink --bfile {params.input} --exclude {output.txt} --make-bed --out {params.out}
+    """
