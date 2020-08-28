@@ -9,7 +9,6 @@ Authors:
 # -------
 
 DATASET = config['dataset']
-STRAND = config['strand']
 DBSNP = config['dbsnp']
 LEGEND = config['legend']
 Z = [i for i in range(3,11)]
@@ -236,15 +235,13 @@ rule find_dups_bim:
     multiext("QC/{dataset}.rareCommonMerged.dbsnp", ".bed", ".bim", ".fam")
   output:
     multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup", ".bed", ".bim", ".fam"),
-    NonDup = "NonDup_{dataset}.rareCommonMerged.dbsnp.bim",
     txt = "QC/NonDup_SNPS.txt"
   params:
     input = "QC/{dataset}.rareCommonMerged.dbsnp",
     out = "QC/{dataset}.rareCommonMerged.dbsnp.noDup"
   shell:
     """
-    Rscript scripts/find_duplicates_bim_v2.R {params}.bim
-    cut -f2 {output.NonDup} > {output.txt}
+    Rscript scripts/find_duplicates_bim_v3.R --bim {params}.bim --out {output.txt}
     plink --bfile {params.input} --extract {output.txt} --make-bed --out {params.out}
     """
 
