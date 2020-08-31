@@ -78,7 +78,7 @@ legend: /share/hennlab/reference/1000g_legend_forQC/combined_autosome_X_XY_1000G
 ### 3. Running the pipeline
 
 ```bash  
-/share/hennlab/progs/miniconda3/bin/snakemake --config config.yaml -p -j 10
+/share/hennlab/progs/miniconda3/bin/snakemake --configfile config.yaml -p -j 10
 ```
 
 #### 3.1 Detailed description of each step in the snakefile portion of the pipeline

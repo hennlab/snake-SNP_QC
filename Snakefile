@@ -106,7 +106,7 @@ rule calibrateZ:
 rule global_concordance:
   input:
     report = "zCall/{dataset}.xy.drop.txt",
-    conc_z = "zCall/{dataset}.concordance.stats{Z}.txt"
+    conc_z = "zCall/{dataset}.concordance.stats{Z}.txt",
     thresh = "zCall/{dataset}.thresholds.{Z}.txt"
   output:
     multiext("zCall/{dataset}.zCalled", ".tped", ".tfam")
@@ -122,12 +122,12 @@ rule global_concordance:
 
 rule extract_rare:
   input:
-    t_in = multiext("zCall/{dataset}.zCalled", ".tped", ".tfam")
+    t_in = multiext("zCall/{dataset}.zCalled", ".tped", ".tfam"),
     rare = "GenomeStudio/{dataset}.rarevariants"
   output:
     multiext("merging/{dataset}.zCalled.rare-filt", ".ped", ".map")
   params:
-    input = "zCall/{dataset}.zCalled"
+    input = "zCall/{dataset}.zCalled",
     output = "merging/{dataset}.zCalled.rare-filt"
   shell:
     """
@@ -260,12 +260,12 @@ rule align_strand:
 rule flip:
   input:
     flip = "QC/FlipStrand_{dataset}.txt",
-    multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup", ".bim", ".bed", ".fam")
+    bfile = multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup", ".bim", ".bed", ".fam")
   output:
     snps = "QC/SNPs_to_flip.txt",
-    multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip", ".bim", ".bed", ".fam")
+    bfile = multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip", ".bim", ".bed", ".fam")
   params:
-    input = "QC/{dataset}.rareCommonMerged.dbsnp.noDup"
+    input = "QC/{dataset}.rareCommonMerged.dbsnp.noDup",
     out = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip"
   shell:
     """
