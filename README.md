@@ -61,7 +61,7 @@ The bottom line in the filter window should look similar to this: [ ("Call Freq"
 
 
 #### 1.7 Export data for zCall
-For the first file:
+For the first file
     - Clear all filters
     - Click 'Full Data Table' tab (to the left of the 'SNP Table' tab)
     - Click 'Column Chooser' icon
@@ -69,7 +69,7 @@ For the first file:
     - Click OK and click 'Export displayed data to file' icon. 
         - Make sure not to include individuals who were outliers on the Call Rate vs. p10 GC plot.
 
-For the second file:
+For the second file
     - Clear all filters
     - Click 'Full Data Table' tab (to the left of the 'SNP Table' tab)
     - Click 'Column Chooser' icon
