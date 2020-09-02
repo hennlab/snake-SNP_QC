@@ -5,82 +5,79 @@
 
 ### 1. GenomeStudio 2.0
 This is a free Windows-only GUI program from Illumina that you will have to create an account to download. 
-    *Input:* 
-            -.idat files for every sample
-            -.bpm file for the project, 
-            -a sample sheet for the project, 
-            -and possibly a .egt (cluster) file, depending on the array used.
-    *Output:* 
-            -a plot of Call Rate vs. p10 GC, 
-            -a plink file of common variants, 
-            -a list of SNPs with poor cluster separation or excessive replicate errors, 
-            -a list of rare SNPs that need to be replaced using zCall, 
-            -and the Full Data Table for input to zCall
 
 #### 1.1 Make new project
-- choose the "Genotyping" option to open the Project Wizard
-- name the project and put it wherever you want on your system
-- choose the "Use sample sheet to load sample intensities" option
-- input the path to three files provided by the genotyping facility
+- Choose the "Genotyping" option to open the Project Wizard
+- Name the project and put it wherever you want on your system
+- Choose the "Use sample sheet to load sample intensities" option
+- Input the path to three files provided by the genotyping facility
     - Sample sheet (.csv)
-    - Directory for all your iDAT files 
+    - Directory for all your sample iDAT files 
     - Directory for the Manifest (.bpm)
-- if you were provided with a cluster file (.egt) you can include the path to that
+- If you were provided with a cluster file (.egt), you can include the path to that
 - Under the "Project Creation Actions" section:
-    - if your system does not have much RAM, select 'Cluster SNPs' option
+    - If your system does not have much RAM, select 'Cluster SNPs' option
     - Use default Gen Call Threshold of 0.15
-- click "Finish" and your project will be loaded into GenomeStudio. This could take several minutes to an hour depending on the number of samples and the speed of your system.
+- Click "Finish" and your project will be loaded into GenomeStudio. This could take the better part of an hour depending on the number of samples and the speed of your system.
 
 
-#### 1.2 Exclude outlier samples
-        - Update sample statistics by clicking the calculator icon in the Samples Table (bottom left)
- - Plot 'p10 GC' against 'Call Rate' and exclude all samples that do not lie in the major group
- Ex. choose a Call Rate threshold < 0.9
-        - Save an image of the plot for future reference
-        - Update SNP statistics for all SNPs when prompted
+#### 1.2 Sample QC
+- Once your samples are loaded into GenomeStudio, you should be prompted to update SNP statistics. This could take a few hours depending on the number of samples and the speed of your system.
+- Update sample statistics by clicking the calculator icon in the Samples Table (bottom left). This can take an hour depending on the number of samples and the speed of your system.
+- From the same Samples Table, Plot 'p10 GC' against 'Call Rate' and exclude all samples that do not lie in the major group
+- Choose a Call Rate threshold (0.9 is standard but use the plot to guide your decision). This will remove all samples below the threshold from further analysis
+
 
         
-#### 1.3 Apply some QC filters
+#### 1.3 SNP QC
 *These are some standard QC metrics we use for genotype data. Depending on the quality of your data, you can adjust things accordingly*
- - Call freq < 0.85 (will generally exclude all of chr Y)
- - Rep errors > 2
- - Cluster separation values < 0.02
- - Heterozygote rate >= 0.80
-        The line in the filter window should look similar to this: [ !("Call Freq" < 0.85 ) AND !("Rep Errors" > 2 ) AND !("<all columns>.Cluster Sep" < 0.02 ) AND !("AB Freq >= 0.80 ) ]
+- Navigate to the SNP Table in the Upper Right panel of GenomeStudio and apply the following filters:
+    - Call freq > 0.85 (will generally exclude all of chr Y)
+    - Rep errors <= 2
+    - Cluster separation values > 0.02 
+        *for this one choose <all columns> from the "Column" section to get access to the "Sub Columns section"*
+    - Heterozygote rate ("AB Freq") <= 0.80 
+    - Add a minor allele frequency filter "Minor Freq" >= 0.05 to capture the common variants
+The bottom line in the filter window should look similar to this: [ ("Call Freq" > 0.85 ) AND ("<all columns>.Cluster Sep" > 0.02 ) AND ("Rep Errors" <= 2 ) AND ("AB Freq" <= 0.8 ) AND ("Minor Freq" >= 0.05 ) ]
 
       
-#### 1.4 Write out common variants as a PLINK file - these are done!
-        - Add a minor allele frequency filter to capture the common variants
-        One liner: [ !("Call Freq" < 0.85 ) AND !("Rep Errors" > 2 ) AND !("<all columns>.Cluster Sep" < 0.02 ) AND !("AB Freq >= 0.80 ) AND ("Minor Freq" >= 0.05 ) ]
-            - Using the Report Wizard, export these to a PLINK formatted report
-            - Plug-in available at: http://support.illumina.com/array/array_software/genomestudio/downloads.html
-	    - Change ForwardStrand param to true, remove all non-visible SNPs and excluded individuals
+#### 1.4 Write common variants to PLINK file
+- The requires you to install a plug-in available at: http://support.illumina.com/array/array_software/genomestudio/downloads.html
+- Using the Report Wizard (Analysis > Reports > Report Wizard... from the top menu), export these to a PLINK formatted report
+    - Change ForwardStrand param to true 
+    - Remove all non-visible SNPs and excluded individuals
 
 
 #### 1.5 Identify SNPs with poor cluster separation or excessive replicate errors
-        - Clear the previous filter, and apply the Rep Errors > 2 and Cluster Sep < 0.02 filters only, both branching from an OR statement
-        One liner: [ [ ("Rep Errors" > 2 ) OR ("<all.columns>.Cluster Rep" < 0.02 ) ] ]
-        - Display only the 'Name' sub column, and export the resulting table to a file to be used later.
+- Clear the previous filter, and apply the Rep Errors > 2 and Cluster Sep < 0.02 filters only, using an OR statement
+    One liner: [ [ ("Rep Errors" > 2 ) OR ("<all.columns>.Cluster Sep" < 0.02 ) ] ]
+- Select only the 'Name' column, and export the resulting table to a file using the button in the SNP Table menu
 
 
 #### 1.6 Identify rare SNPs to be replaced by zCall:
-        - Clear the previous filter, and apply the Minor allele frequency < 0.05 filter
-        One liner: [ ("Minor Freq" < 0.05 ) ]
-        - This will display a list of SNPs whose calls should be replaced by the results of zCall. Export the resulting table to a file to be used later.
+- Clear the previous filter, and apply the Minor allele frequency < 0.05 filter. This will display a list of SNPs whose calls should be replaced by the results of zCall. 
+    One liner: [ ("Minor Freq" < 0.05 ) ]
+- Select only the 'Name' column, and export the resulting table to a file using the button in the SNP Table menu
 
 
 #### 1.7 Export data for zCall
-        - Clear all filters
- - Click 'Full Data Table' tab (to the left of the 'SNP Table' tab)
- - Click 'Column Chooser' icon
- - Display 'Name', 'Chr', 'Position', and all sample columns, and 'GType', 'X', 'Y' subcolumns
- - Click OK and click 'Export displayed data to file' icon. Do not include individuals who were outliers on the Call Rate vs. p10 GC plot.
+For the first file:
+    - Clear all filters
+    - Click 'Full Data Table' tab (to the left of the 'SNP Table' tab)
+    - Click 'Column Chooser' icon
+    - Display 'Name', 'Chr', 'Position', and all sample columns, and 'GType', 'X', 'Y' subcolumns
+    - Click OK and click 'Export displayed data to file' icon. 
+        - Make sure not to include individuals who were outliers on the Call Rate vs. p10 GC plot.
 
+For the second file:
+    - Clear all filters
+    - Click 'Full Data Table' tab (to the left of the 'SNP Table' tab)
+    - Click 'Column Chooser' icon
+    - Display 'Name', 'Chr', 'Position', and all sample columns, and 'GType' subcolumn
+    - Click OK and click 'Export displayed data to file' icon. 
+        - Make sure not to include individuals who were outliers on the Call Rate vs. p10 GC plot.
  
-#### 1.8 Save project, can exit
-
-
-
+#### 1.8 Save project and exit
 
 
 Inputs to snakefile pipeline from zCall (must be named with the following syntax) Please name these two files according to the following syntax:
