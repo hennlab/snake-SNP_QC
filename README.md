@@ -148,6 +148,8 @@ dataset: cdb_80
 dbsnp: /share/hennlab/reference/dbSNP/snp144_snpOnly_noContig.bed
 
 legend: /share/hennlab/reference/1000g_legend_forQC/combined_autosome_X_XY_1000GP_Phase3_GRCh37_SNPonly.legend
+
+strand: /share/hennlab/data/snp-array/SAfrica_IlluminaArrays/CDB_NCTB_H3Africa/StrandReport/H3Africa_2017_20021485_A3_StrandReport_F.txt
 ```
 
 ### 3. Running the pipeline
