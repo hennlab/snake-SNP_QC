@@ -63,7 +63,8 @@ All other scripts can be found in this github.
 The config file requires three arguments:
 - dataset: the name of the dataset, must match the input genome studio scripts {dataset}.txt, {dataset}.xy.txt, {dataset}.rarevariants
 - dbsnp: path to the dbsnp file
-- legend: path to the illumina strand legend file
+- legend: path to the illumina 1000 genome legend file
+- strand: path to strand report
 
 Below is an example format for the config file:
 
@@ -73,6 +74,8 @@ dataset: cdb_80
 dbsnp: /share/hennlab/reference/dbSNP/snp144_snpOnly_noContig.bed
 
 legend: /share/hennlab/reference/1000g_legend_forQC/combined_autosome_X_XY_1000GP_Phase3_GRCh37_SNPonly.legend
+
+strand: /share/hennlab/data/snp-array/SAfrica_IlluminaArrays/CDB_NCTB_H3Africa/StrandReport/H3Africa_2017_20021485_A3_StrandReport_F.txt
 ```
 
 ### 3. Running the pipeline
