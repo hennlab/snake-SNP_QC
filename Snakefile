@@ -25,9 +25,9 @@ def get_Z_num(wildcards):
 
 rule all:
   input:
-    expand("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.bim", dataset = DATASET),
-    expand("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.bed", dataset = DATASET),
-    expand("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.fam", dataset = DATASET)
+    expand("Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.bim", dataset = DATASET),
+    expand("Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.bed", dataset = DATASET),
+    expand("Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.fam", dataset = DATASET)
 
 rule convert_tped:
   input:
@@ -225,12 +225,13 @@ rule update_snp_ids:
   output:
     multiext("QC/{dataset}.rareCommonMerged.dbsnp", ".bed", ".bim", ".fam")
   params:
-    "merging/{dataset}.rareCommonMerged"
+    input = "merging/{dataset}.rareCommonMerged",
+    output = "QC/{dataset}.rareCommonMerged.dbsnp"
   shell:
     """
-    python scripts/update_rsID_bim.py --bim {params}.bim --bed {DBSNP} --format T--codechr T --out {params}.dbsnp.bim
-    cp {params}.bed {params}.dbsnp.bed
-    cp {params}.fam {params}.dbsnp.fam
+    python scripts/update_rsID_bim.py --bim {params.input}.bim --bed {DBSNP} --format T--codechr T --out {params.output}.bim
+    cp {params.input}.bed {params.output}.bed
+    cp {params.input}.fam {params.output}.fam
     """
 
 rule find_dups_bim:
@@ -244,7 +245,7 @@ rule find_dups_bim:
     txt = "QC/NonDup_SNPS.txt"
   shell:
     """
-    Rscript scripts/find_duplicates_bim_v3.R --bim {params}.bim --out {params.txt}
+    Rscript scripts/find_duplicates_bim_v3.R --bim {params.input}.bim --out {params.txt}
     plink --bfile {params.input} --extract {params.txt} --make-bed --out {params.out}
     """
 
@@ -252,17 +253,19 @@ rule align_strand:
   input:
     "QC/{dataset}.rareCommonMerged.dbsnp.noDup.bim"
   output:
-    "QC/Indel_{dataset}.txt",
-    "QC/NonMatching_{dataset}.txt",
-    "QC/FlipStrand_{dataset}.txt"
+    "QC/{dataset}_Indel.txt",
+    "QC/{dataset}_NonMatching.txt",
+    "QC/{dataset}_FlipStrand.txt"
+  params:
+    "QC/{dataset}"
   shell:
     """
-    python scripts/match_against_1000g.py --bim {input} --legend {LEGEND} --out {DATASET}
+    python scripts/match_against_1000g.py --bim {input} --legend {LEGEND} --out {params}
     """
 
 rule flip:
   input:
-    flip = "QC/FlipStrand_{dataset}.txt",
+    flip = "QC/{dataset}_FlipStrand.txt",
     bfile = multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup", ".bim", ".bed", ".fam")
   output:
     multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip", ".bim", ".bed", ".fam")
@@ -273,7 +276,7 @@ rule flip:
   shell:
     """
     cut -f2 {input.flip} > {params.snps}
-    plink --bfile {params.input} --flip {params.snps} --make-bed --out {params.output}
+    plink --bfile {params.input} --flip {params.snps} --make-bed --out {params.out}
     mv {params.input}.bed {params.out}.bed
     mv {params.input}.fam {params.out}.fam
     """
@@ -281,7 +284,7 @@ rule flip:
 rule remove_non_matching:
   input:
     bfile = multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip", ".bim", ".bed", ".fam"),
-    match = "QC/NonMatching_{dataset}.txt"
+    match = "QC/{dataset}_NonMatching.txt"
   output:
     multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match", ".bim", ".bed", ".fam")
   params:
@@ -289,17 +292,17 @@ rule remove_non_matching:
     out = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match"
   shell:
     """
-    plink --bfile {params.in} --exclude {input.match} --make-bed --out {params.out}
+    plink --bfile {params.input} --exclude {input.match} --make-bed --out {params.out}
     """
 
 rule remove_cg_at:
   input:
     multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match", ".bim", ".bed", ".fam")
   output:
-    multiext("QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT", ".bim", ".bed", ".fam")
+    multiext("Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT", ".bim", ".bed", ".fam")
   params:
     input = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match",
-    out = "QC/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT",
+    out = "Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT",
     txt = "QC/cg_at_loci.txt"
   shell:
     """
