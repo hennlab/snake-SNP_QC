@@ -1,5 +1,6 @@
 # Henn Lab SNP-QC pipeline Steps
 
+Location of manual pipeline instructions:
 ```https://sites.google.com/site/thehennlab/snp_array_qc```
 
 
