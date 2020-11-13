@@ -28,7 +28,7 @@ option_list <- list(
               help="Input bim files"),
   make_option(c("-r", "--rsid"), action="store", default="",
               help="Input rsids in bed format"),
-  make_option(c("-s", "--silent"), action="store_false",default=TRUE, 
+  make_option(c("-s", "--silent"), action="store_false",default=TRUE,
               help="Turn off verbose output"),
   make_option(c("-o", "--out"), action="store",
               help = "Output filename")
@@ -50,6 +50,7 @@ rsids$chr<-gsub("XY", 25, rsids$chr)
 rsids$chr<-gsub("X", 23, rsids$chr)
 rsids$chr<-gsub("Y", 24, rsids$chr)
 rsids$chr<-gsub("MT", 26, rsids$chr)
+rsids$chr<-gsub("M", 26, rsids$chr)
 rsids$chr<-as.numeric(rsids$chr)
 
 # Add chromosome and position as the keys for these data tables
@@ -82,5 +83,3 @@ if (opt$silent==TRUE) {
 
 # Write new bimfile
 write.table(newbimfile, opt$out, quote=F, row.names=F, col.names=F)
-
-
