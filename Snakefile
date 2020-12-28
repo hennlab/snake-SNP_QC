@@ -229,7 +229,7 @@ rule update_snp_ids:
     output = "QC/{dataset}.rareCommonMerged.dbsnp"
   shell:
     """
-    python scripts/update_rsID_bim.py --bim {params.input}.bim --bed {DBSNP} --format T--codechr T --out {params.output}.bim
+    Rscript scripts/update_rsID_bim_v2.R --bim {params.input}.bim --rsid {DBSNP} --out {params.output}.bim
     cp {params.input}.bed {params.output}.bed
     cp {params.input}.fam {params.output}.fam
     """
