@@ -1,3 +1,4 @@
+
 # Steps used to extract Y chromosome data and QC for CDB snp-array data
 
 ### 1. Download and open Genome Studio
@@ -63,8 +64,54 @@ cd /share/hennlab/data/snp-array/SAfrica_IlluminaArrays/CDB_NCTB_H3Africa/Y_chro
 source /share/hennlab/progs/miniconda3/etc/profile.d/conda.sh
 conda activate SNP-QC
 Rscript update_rsID_bim_v2.R --bim CDB_Y_chrom.noDups.bim --rsid /share/hennlab/reference/dbSNP/snp144_snpOnly_noContig.bed --out CDB_Y_chrom.noDups.rsids.bim # script from snake-SNP_QC pipeline on GitHub
-cp {params.input}.bed {params.output}.bed
-cp {params.input}.fam {params.output}.fam
+Warning message:
+NAs introduced by coercion
+2055 out of 2236 rsids corrected.
+cp CDB_Y_chrom.noDups.bed CDB_Y_chrom.noDups.rsids.bed
+cp CDB_Y_chro
+m.noDups.fam CDB_Y_chrom.noDups.rsids.fam
 ```
 
+```
+Rscript update_rsID_bim_v2.R --bim /share/hennlab/data/snp-array/SAfrica_IlluminaArrays/CDB_NCTB_H3Africa/Y_chrom/CDB_Y_chrom.noDups.2.bim --rsid /share/hennlab/reference/dbSNP/snp144_snpOnly_noContig.bed --out CDB_Y_chrom.noDups.2.rsids
+```
+
+For some reason, some duplicates are not getting removed by plink and are causing issues with the rsid updater.
+Figure out which snps are causing issues with the rsid updater and remove them from dataset:
+
+```
+cut -f4 plink_QC/CDB_Y_chrom.noDups.bim | uniq -cd
+2 6736443
+2 24464597 # these two snps are getting past the duplicate filter
+
+grep "6736443" CDB_Y_chrom.bim
+24	kgp30522265	0	6736443	T	C
+24	rs35815655	0	6736443	A	G
+
+grep "24464597" CDB_Y_chrom.bim
+24	h3a-req-Y_24464597	0	24464597	0	G
+24	rs2268591	0	24464597	0	C
+
+Add first one manually to "CDB_Y_chrom.dupvar"
+```
+
+Rerun duplicate remover:
+```
+plink --bfile CDB_Y_chrom --exclude CDB_Y_chrom.dupvar --make-bed --out CDB_Y_chrom.noDups-fix
+```
+
+Rerun rsids updater
+```
+source /share/hennlab/progs/miniconda3/etc/profile.d/conda.sh
+conda activate SNP-QC
+Rscript update_rsID_bim_v2.R --bim CDB_Y_chrom.noDups-fix.bim --rsid /share/hennlab/reference/dbSNP/snp144_snpOnly_noContig.bed --out CDB_Y_chrom.noDups-fix.rsids.bim # script from snake-SNP_QC pipeline on GitHub
+```
+
+cp plink_QC/CDB_Y_chrom.noDups-fix.bed CDB_Y_chrom.noDups-fix.rsids.bed
+cp plink_QC/CDB_Y_chrom.noDups-fix.fam CDB_Y_chrom.noDups-fix.rsids.fam
+
+
 ### 6. Snappy
+
+
+run snap
