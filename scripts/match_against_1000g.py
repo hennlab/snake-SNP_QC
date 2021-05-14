@@ -5,7 +5,7 @@ import pandas as pd
 USAGE = """
 match_against_1000g.py --bim 
                              --legend <legend file >
-                             --out <mid fix name>
+                             --out <prefix for output files>
 """
 
 parser = OptionParser(USAGE)
@@ -99,9 +99,9 @@ for i,snp in enumerate(bim['position']):
             bim['remove'][i]=1
 
 
-out_indel = file("Indel_" + out + ".txt", 'w')
-out_remove = file("NonMatching_" + out + ".txt", 'w')
-out_flip = file("FlipStrand_" + out + ".txt", 'w')
+out_indel = file(out + "_Indel" + ".txt", 'w')
+out_remove = file(out + "_NonMatching" + ".txt", 'w')
+out_flip = file(out + "_FlipStrand" + ".txt", 'w')
 
 for i in range(0,bim[0].size):
     if bim['indel'][i]==1:
