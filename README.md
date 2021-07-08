@@ -121,6 +121,7 @@ Please create a working directory for the snakefile to run in. The folder struct
     |__convertReportToTPED.py
     |__excess_het.R
     |__find_cg_at.py
+    |__global_concordance.sh
     |__find_duplicates_bim_v3.R
     |__match_against_1000g.py
     |__update_rsID_bim_v2.R
@@ -130,7 +131,6 @@ Please create a working directory for the snakefile to run in. The folder struct
     |__findMeanSD.py
     |__dropSamplesFromReport.py
     |__findThresholds.py
-
 ```
 The last 6 scripts are from the zcall program. They can be symbolically linked from this location on augrabies `/share/hennlab/progs/ZCall/GenomeStudio` into your scripts folder, or downloaded from the [zCall github page](https://github.com/jigold/zCall)
 
