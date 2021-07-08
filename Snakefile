@@ -1,7 +1,7 @@
 """
 Title: snake-SNP_QC
 Description: Henn lab pipeline for QC of SNP array data
-Authors:
+Authors: Shyamalika Gopalan, Austin Reynolds, Mira Mastoras
 """
 
 # -------
