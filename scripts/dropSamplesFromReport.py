@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
 import sys
-import gzip
+
 
 report = sys.argv[1]
 dropSamples = sys.argv[2]

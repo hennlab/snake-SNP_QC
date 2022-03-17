@@ -15,9 +15,6 @@ STRAND = config['strand']
 
 Z = [i for i in range(3,11)]
 
-def get_Z_num(wildcards):
-    files = expand("{dataset}_outputThreshold_{z}.txt", dataset=DATASET, z=Z)
-    return files
 
 # -------
 # ZCALL
@@ -27,7 +24,9 @@ rule all:
   input:
     expand("Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.bim", dataset = DATASET),
     expand("Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.bed", dataset = DATASET),
-    expand("Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.fam", dataset = DATASET)
+    expand("Final_QC_data/{dataset}.rareCommonMerged.dbsnp.noDup.flip.match.noCGAT.fam", dataset = DATASET),
+    expand("zCall/{dataset}_outputThreshold_{z}.txt", dataset=DATASET, z=Z),
+    expand("zCall/{dataset}.concordance.stats{z}.txt", dataset=DATASET, z=Z)
 
 rule convert_tped:
   input:
@@ -93,18 +92,20 @@ rule findThresholds:
     betas = "zCall/{dataset}.betas.txt",
     report = "zCall/{dataset}.xy.drop.txt",
   output:
-    "zCall/{dataset}.thresholds.{Z}.txt"
+    "zCall/{dataset}_outputThreshold_{z}.txt"
+  params:
+    zed="{z}"
   shell:
     """
-    python scripts/findThresholds.py -B {input.betas} -R {input.report} -Z {Z} -I 0.2 > {output}
+    python scripts/findThresholds.py -B {input.betas} -R {input.report} -Z {params.zed} -I 0.2 > {output}
     """
 
 rule calibrateZ:
   input:
     report = "zCall/{dataset}.xy.drop.txt",
-    thresh = "zCall/{dataset}.thresholds.{Z}.txt"
+    thresh = "zCall/{dataset}_outputThreshold_{z}.txt"
   output:
-    "zCall/{dataset}.concordance.stats{Z}.txt",
+    "zCall/{dataset}.concordance.stats{z}.txt",
   shell:
     """
     python scripts/calibrateZ.py -R {input.report} -T {input.thresh} > {output}
@@ -112,7 +113,8 @@ rule calibrateZ:
 
 rule global_concordance:
   input:
-    report = "zCall/{dataset}.xy.drop.txt"
+    report = "zCall/{dataset}.xy.drop.txt",
+    concord = expand("zCall/{dataset}.concordance.stats{z}.txt", dataset=DATASET, z=Z)
   output:
     multiext("zCall/{dataset}.zCalled", ".tped", ".tfam")
   params:
@@ -159,14 +161,29 @@ rule AB_convert_rare:
     bed = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.bed",
     fam = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.fam"
   output:
-    bim = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.bim",
-    bed = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.bed",
-    fam = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.fam"
+    tempbim = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.temp.bim",
+    tempbed = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.temp.bed",
+    tempfam = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.temp.fam",
+    missing = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.missnps"
   shell:
     """
-    Rscript scripts/AB_to_top_allele_v2.R --bim {input.bim} --strand {STRAND} --out {output.bim}
-    cp {input.bed} {output.bed}
-    cp {input.fam} {output.fam}
+    Rscript scripts/AB_to_top_allele_v2.R --bim {input.bim} --strand {STRAND} --missnp {output.missing} --out {output.tempbim}
+    cp {input.bed} {output.tempbed}
+    cp {input.fam} {output.tempfam}
+    """
+
+rule AB_convert_cleanup:
+  input:
+    com = multiext("merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.temp", ".bed", ".bim", ".fam"),
+    missnp = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.missnps"
+  output:
+    multiext("merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv", ".bed", ".bim", ".fam")
+  params:    
+    input = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.temp",
+    out = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv"
+  shell:
+    """
+    plink --bfile {params.input} --exclude {input.missnp} --make-bed --out {params.out}
     """
 
 rule make_commonvar:
@@ -183,7 +200,9 @@ rule make_commonvar:
     awk '{{$1 = $2; print}}' {params.out}.fam > test ; mv test {params.out}.fam
     """
 
-rule remove_dups:
+
+
+rule premerge_remove_dups:
   input:
     com = multiext("merging/{dataset}.commonvar", ".bed", ".bim", ".fam"),
     rare = multiext("merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv",".bed", ".bim", ".fam" )
@@ -197,10 +216,10 @@ rule remove_dups:
     rare_out = "merging/{dataset}.zCalled.rare-filt.badsnp-filt.conv.noDups"
   shell:
     """
-    plink --bfile {params.com_in} --list-duplicate-vars suppress-first --out merging/common
-    plink --bfile {params.rare_in} --list-duplicate-vars suppress-first --out merging/rare
-    plink --bfile {params.com_in} --exclude merging/common.dupvar --make-bed --out {params.com_out}
-    plink --bfile {params.rare_in} --exclude merging/rare.dupvar --make-bed --out {params.rare_out}
+    Rscript scripts/find_duplicates_bim_v3.R --bim {params.com_in}.bim --out com_nondups.snps
+    plink --bfile {params.com_in} --extract com_nondups.snps --make-bed --out {params.com_out}
+    Rscript scripts/find_duplicates_bim_v3.R --bim {params.rare_in}.bim --out rare_nondups.snps
+    plink --bfile {params.rare_in} --extract rare_nondups.snps --make-bed --out {params.rare_out}
     """
 
 
@@ -226,13 +245,17 @@ rule update_snp_ids:
     multiext("QC/{dataset}.rareCommonMerged.dbsnp", ".bed", ".bim", ".fam")
   params:
     input = "merging/{dataset}.rareCommonMerged",
+    nodups = "merging/{dataset}.rareCommonMerged.noDups",
     output = "QC/{dataset}.rareCommonMerged.dbsnp"
   shell:
     """
-    Rscript scripts/update_rsID_bim_v2.R --bim {params.input}.bim --rsid {DBSNP} --out {params.output}.bim
-    cp {params.input}.bed {params.output}.bed
-    cp {params.input}.fam {params.output}.fam
+    Rscript scripts/find_duplicates_bim_v3.R --bim {params.input}.bim --out combined_nondups.snps
+    plink --bfile {params.input} --extract combined_nondups.snps --make-bed --out {params.nodups}
+    Rscript scripts/update_rsID_bim_v2.R --bim {params.nodups}.bim --rsid {DBSNP} --out {params.output}.bim
+    cp {params.nodups}.bed {params.output}.bed
+    cp {params.nodups}.fam {params.output}.fam
     """
+
 
 rule find_dups_bim:
   input:

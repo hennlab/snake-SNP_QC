@@ -33,6 +33,8 @@ option_list <- list(
               help="Input path to bim file output from zCall"),
   make_option(c("-s", "--strand"), action="store", default="",
               help="Input path to Illumina Strand file"),
+  make_option(c("-m", "--missnp"), action="store", default="",
+              help="Output file path for snps missing between bim and strandfile"),
   make_option(c("-v", "--verbose"), action="store_false",default=TRUE, 
               help="Turn off verbose output"),
   make_option(c("-o", "--out"), action="store",
@@ -80,5 +82,12 @@ overlap[A2B,"Allele2"] <- overlap[A2B, "Forward_Allele2"]
 # Remove all the extra columns to get back to bim format
 newbimfile<-overlap[order(ordercolumn),c("chr","SNP_Name","dist","pos","Allele1","Allele2")]
 
+# Find all SNPs in newbimfile that weren't in the strand report and are therefore NA's
+snps_to_remove<-newbimfile[rowSums(is.na(newbimfile)) > 0,]
+
 # Write converted bimfile to out
 write.table(newbimfile, opt$out, quote=F, row.names=F, col.names=F, sep="\t")
+
+#write list of NA snps to out 
+write.table(snps_to_remove$SNP_Name, opt$missnp , quote=F, row.names=F, col.names=F, sep="\t")
+
