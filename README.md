@@ -15,7 +15,7 @@ This is a free Windows-only GUI program from Illumina that you will have to crea
     - Sample sheet (.csv)
     - Directory for all your sample iDAT files
     - Directory for the Manifest (.bpm)
-- If you were provided with a cluster file (.egt), you can include the path to that
+- If you were provided with a cluster file (.egt), you can include the path to that. Illumina should have cluster files available for all general arrays. If you are working with a custom or consortium array, you will have to generate your own cluster file. To do this, check the following three boxes: "Cluster SNPs", "Calculate Sample and SNP Statistics", and Calculate Heritability"
 - Under the "Project Creation Actions" section:
     - If your system does not have much RAM, select 'Cluster SNPs' option
     - Use default Gen Call Threshold of 0.15
